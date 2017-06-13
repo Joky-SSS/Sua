@@ -13,5 +13,5 @@ public interface ProgressListener {
      */
     void onProgress(ProgressInfo progressInfo);
 
-    void onError(long id, Exception e);
+    void onError(String key, Exception e);
 }

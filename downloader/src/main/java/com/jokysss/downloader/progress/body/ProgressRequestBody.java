@@ -4,6 +4,7 @@ import android.os.Handler;
 
 import com.jokysss.downloader.progress.ProgressInfo;
 import com.jokysss.downloader.progress.ProgressListener;
+import com.jokysss.downloader.progress.ProgressManager;
 
 import java.io.IOException;
 import java.util.Set;
@@ -66,8 +67,9 @@ public class ProgressRequestBody extends RequestBody {
         } catch (IOException e) {
             e.printStackTrace();
             for (int i = 0; i < mListeners.length; i++) {
-                mListeners[i].onError(mProgressInfo.getId(), e);
+                mListeners[i].onError(mProgressInfo.getKey(), e);
             }
+            ProgressManager.getInstance().removeRequestLisenter(mProgressInfo.getKey());
             throw e;
         }
     }
@@ -87,8 +89,9 @@ public class ProgressRequestBody extends RequestBody {
             } catch (IOException e) {
                 e.printStackTrace();
                 for (int i = 0; i < mListeners.length; i++) {
-                    mListeners[i].onError(mProgressInfo.getId(), e);
+                    mListeners[i].onError(mProgressInfo.getKey(), e);
                 }
+                ProgressManager.getInstance().removeRequestLisenter(mProgressInfo.getKey());
                 throw e;
             }
             if (mProgressInfo.getContentLength() == 0) { //避免重复调用 contentLength()
@@ -109,6 +112,9 @@ public class ProgressRequestBody extends RequestBody {
                         });
                     }
                     lastRefreshTime = System.currentTimeMillis();
+                    if(totalBytesRead == mProgressInfo.getContentLength()){
+                        ProgressManager.getInstance().removeRequestLisenter(mProgressInfo.getKey());
+                    }
                 }
             }
         }

@@ -94,6 +94,11 @@ public final class ProgressManager {
         }
         progressListeners.add(listener);
     }
+    public void removeRequestLisenter(String url) {
+        synchronized (ProgressManager.class) {
+            mRequestListeners.remove(url);
+        }
+    }
 
     /**
      * 将需要被监听下载进度的 Url 注册到管理器,此操作请在页面初始化时进行,切勿多次注册同一个(内容相同)监听器
@@ -112,7 +117,11 @@ public final class ProgressManager {
         }
         progressListeners.add(listener);
     }
-
+    public void removeResponseListener(String url) {
+        synchronized (ProgressManager.class) {
+            mResponseListeners.remove(url);
+        }
+    }
     /**
      * 将 {@link OkHttpClient.Builder} 传入,配置一些本管理器需要的参数
      *

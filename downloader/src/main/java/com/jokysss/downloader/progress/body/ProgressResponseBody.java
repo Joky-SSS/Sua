@@ -6,6 +6,7 @@ import android.util.Log;
 
 import com.jokysss.downloader.progress.ProgressInfo;
 import com.jokysss.downloader.progress.ProgressListener;
+import com.jokysss.downloader.progress.ProgressManager;
 
 import java.io.IOException;
 import java.util.Set;
@@ -73,8 +74,9 @@ public class ProgressResponseBody extends ResponseBody {
                 } catch (IOException e) {
                     e.printStackTrace();
                     for (int i = 0; i < mListeners.length; i++) {
-                        mListeners[i].onError(mProgressInfo.getId(), e);
+                        mListeners[i].onError(mProgressInfo.getKey(), e);
                     }
+                    ProgressManager.getInstance().removeResponseListener(mProgressInfo.getKey());
                     throw e;
                 }
                 if (mProgressInfo.getContentLength() == 0) { //避免重复调用 contentLength()
@@ -97,6 +99,9 @@ public class ProgressResponseBody extends ResponseBody {
                             });
                         }
                         lastRefreshTime = System.currentTimeMillis();
+                        if(totalBytesRead == mProgressInfo.getContentLength()){
+                            ProgressManager.getInstance().removeResponseListener(mProgressInfo.getKey());
+                        }
                     }
                 }
                 return bytesRead;

@@ -1,10 +1,9 @@
 package com.jokysss.downloader.progress.body;
 
 import android.os.Handler;
+import android.os.SystemClock;
 
-import com.jokysss.downloader.progress.ProgressInfo;
 import com.jokysss.downloader.progress.ProgressListener;
-import com.jokysss.downloader.progress.ProgressManager;
 
 import java.io.IOException;
 import java.util.Set;
@@ -38,7 +37,7 @@ public class ProgressRequestBody extends RequestBody {
         this.mDelegate = delegate;
         this.mListeners = listeners.toArray(new ProgressListener[listeners.size()]);
         this.mHandler = handler;
-        this.mProgressInfo = new ProgressInfo(System.currentTimeMillis(),key);
+        this.mProgressInfo = new ProgressInfo(key);
     }
 
     @Override
@@ -69,7 +68,6 @@ public class ProgressRequestBody extends RequestBody {
             for (int i = 0; i < mListeners.length; i++) {
                 mListeners[i].onError(mProgressInfo.getKey(), e);
             }
-            ProgressManager.getInstance().removeRequestLisenter(mProgressInfo.getKey());
             throw e;
         }
     }
@@ -77,6 +75,7 @@ public class ProgressRequestBody extends RequestBody {
     protected final class CountingSink extends ForwardingSink {
         private long totalBytesRead = 0L;
         private long lastRefreshTime = 0L;  //最后一次刷新的时间
+        private long tempSize = 0L;
 
         public CountingSink(Sink delegate) {
             super(delegate);
@@ -91,30 +90,36 @@ public class ProgressRequestBody extends RequestBody {
                 for (int i = 0; i < mListeners.length; i++) {
                     mListeners[i].onError(mProgressInfo.getKey(), e);
                 }
-                ProgressManager.getInstance().removeRequestLisenter(mProgressInfo.getKey());
                 throw e;
             }
             if (mProgressInfo.getContentLength() == 0) { //避免重复调用 contentLength()
                 mProgressInfo.setContentLength(contentLength());
             }
             totalBytesRead += byteCount;
+            tempSize += byteCount;
             if (mListeners != null) {
-                long curTime = System.currentTimeMillis();
+                long curTime = SystemClock.elapsedRealtime();
                 if (curTime - lastRefreshTime >= REFRESH_TIME || totalBytesRead == mProgressInfo.getContentLength()) {
-                    mProgressInfo.setCurrentbytes(totalBytesRead);
+                    final long finalTempSize = tempSize;
+                    final long finalTotalBytesRead = totalBytesRead;
+                    final long finalIntervalTime = curTime - lastRefreshTime;
                     for (int i = 0; i < mListeners.length; i++) {
-                        final int finalI = i;
+                        final ProgressListener listener = mListeners[i];
                         mHandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                mListeners[finalI].onProgress(mProgressInfo);
+                                // Runnable 里的代码是通过 Handler 执行在主线程的,外面代码可能执行在其他线程
+                                // 所以我必须使用 final ,保证在 Runnable 执行前使用到的变量,在执行时不会被修改
+                                mProgressInfo.setEachBytes(finalTempSize);
+                                mProgressInfo.setCurrentbytes(finalTotalBytesRead);
+                                mProgressInfo.setIntervalTime(finalIntervalTime);
+                                mProgressInfo.setFinish(finalTotalBytesRead == mProgressInfo.getContentLength());
+                                listener.onProgress(mProgressInfo);
                             }
                         });
                     }
-                    lastRefreshTime = System.currentTimeMillis();
-                    if(totalBytesRead == mProgressInfo.getContentLength()){
-                        ProgressManager.getInstance().removeRequestLisenter(mProgressInfo.getKey());
-                    }
+                    lastRefreshTime = curTime;
+                    tempSize = 0;
                 }
             }
         }

@@ -8,7 +8,7 @@ import java.io.OutputStream;
 
 import okhttp3.ResponseBody;
 
-public class Filehelper {
+public class FileHelper {
 
 	public static boolean writeResponseBodyToDisk(ResponseBody body, String path) {
 		File temp = null;

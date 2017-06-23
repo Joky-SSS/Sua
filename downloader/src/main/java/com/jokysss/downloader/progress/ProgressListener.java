@@ -1,5 +1,7 @@
 package com.jokysss.downloader.progress;
 
+import com.jokysss.downloader.progress.body.ProgressInfo;
+
 /**
  * Created by jess on 02/06/2017 18:23
  * Contact with jess.yan.effort@gmail.com

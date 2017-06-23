@@ -3,12 +3,12 @@ package com.jokysss.downloader.progress;
 import android.os.Handler;
 import android.os.Looper;
 
-
 import com.jokysss.downloader.progress.body.ProgressRequestBody;
 import com.jokysss.downloader.progress.body.ProgressResponseBody;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -34,11 +34,11 @@ public final class ProgressManager {
     private final Map<String, Set<ProgressListener>> mResponseListeners = new WeakHashMap<>();
     private final Handler mHandler; //所有监听器在 Handler 中被执行,所以可以保证所有监听器在主线程中被执行
     private final Interceptor mInterceptor;
-
+    public static final String LISTENKEY = "listenKey";
     private static volatile ProgressManager mProgressManager;
 
     public static final boolean DEPENDENCY_OKHTTP;
-    public static int REFRESH_TIME = 150; //回调刷新时间(单位ms),避免高频率调用
+    public static int REFRESH_TIME = 200; //回调刷新时间(单位ms),避免高频率调用
 
     static {
         boolean hasDependency;
@@ -143,8 +143,7 @@ public final class ProgressManager {
     public Request wrapRequestBody(Request request) {
         if (request == null || request.body() == null)
             return request;
-
-        String key = request.url().toString();
+        String key = request.header(LISTENKEY);
         if (mRequestListeners.containsKey(key)) {
             Set<ProgressListener> listeners = mRequestListeners.get(key);
             return request.newBuilder()
@@ -165,7 +164,7 @@ public final class ProgressManager {
         if (response == null || response.body() == null)
             return response;
 
-        String key = response.request().url().toString();
+        String key = response.request().header(LISTENKEY);
         if (mResponseListeners.containsKey(key)) {
             Set<ProgressListener> listeners = mResponseListeners.get(key);
             return response.newBuilder()
@@ -174,5 +173,13 @@ public final class ProgressManager {
         }
         return response;
     }
-
+    private void forEachListenersOnError(Map<String, List<ProgressListener>> map, String url, Exception e) {
+        if (map.containsKey(url)) {
+            List<ProgressListener> progressListeners = map.get(url);
+            ProgressListener[] array = progressListeners.toArray(new ProgressListener[progressListeners.size()]);
+            for (int i = 0; i < array.length; i++) {
+                array[i].onError(url, e);
+            }
+        }
+    }
 }

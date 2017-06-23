@@ -1,12 +1,9 @@
 package com.jokysss.downloader.progress.body;
 
 import android.os.Handler;
-import android.util.Log;
+import android.os.SystemClock;
 
-
-import com.jokysss.downloader.progress.ProgressInfo;
 import com.jokysss.downloader.progress.ProgressListener;
-import com.jokysss.downloader.progress.ProgressManager;
 
 import java.io.IOException;
 import java.util.Set;
@@ -40,7 +37,7 @@ public class ProgressResponseBody extends ResponseBody {
         this.mDelegate = responseBody;
         this.mListeners = listeners.toArray(new ProgressListener[listeners.size()]);
         this.mHandler = handler;
-        this.mProgressInfo = new ProgressInfo(System.currentTimeMillis(),key);
+        this.mProgressInfo = new ProgressInfo(key);
     }
 
     @Override
@@ -65,6 +62,7 @@ public class ProgressResponseBody extends ResponseBody {
         return new ForwardingSource(source) {
             private long totalBytesRead = 0L;
             private long lastRefreshTime = 0L;  //最后一次刷新的时间
+            private long tempSize = 0L;
 
             @Override
             public long read(Buffer sink, long byteCount) throws IOException {
@@ -76,7 +74,6 @@ public class ProgressResponseBody extends ResponseBody {
                     for (int i = 0; i < mListeners.length; i++) {
                         mListeners[i].onError(mProgressInfo.getKey(), e);
                     }
-                    ProgressManager.getInstance().removeResponseListener(mProgressInfo.getKey());
                     throw e;
                 }
                 if (mProgressInfo.getContentLength() == 0) { //避免重复调用 contentLength()
@@ -84,24 +81,31 @@ public class ProgressResponseBody extends ResponseBody {
                 }
                 // read() returns the number of bytes read, or -1 if this source is exhausted.
                 totalBytesRead += bytesRead != -1 ? bytesRead : 0;
+                tempSize += bytesRead != -1 ? bytesRead : 0;
                 if (mListeners != null) {
-                    long curTime = System.currentTimeMillis();
-                    if (curTime - lastRefreshTime >= REFRESH_TIME || totalBytesRead == mProgressInfo.getContentLength()) {
-                        mProgressInfo.setCurrentbytes(totalBytesRead);
+                    long curTime = SystemClock.elapsedRealtime();
+                    if (curTime - lastRefreshTime >= REFRESH_TIME || bytesRead == -1 || totalBytesRead == mProgressInfo.getContentLength()) {
+                        final long finalBytesRead = bytesRead;
+                        final long finalTempSize = tempSize;
+                        final long finalTotalBytesRead = totalBytesRead;
+                        final long finalIntervalTime = curTime - lastRefreshTime;
                         for (int i = 0; i < mListeners.length; i++) {
-                            final int finalI = i;
-                            Log.e("Xup","mListeners["+finalI + "],totalBytesRead:"+totalBytesRead+",ContentLength"+mProgressInfo.getContentLength());
+                            final ProgressListener listener = mListeners[i];
                             mHandler.post(new Runnable() {
                                 @Override
                                 public void run() {
-                                    mListeners[finalI].onProgress(mProgressInfo);
+                                    // Runnable 里的代码是通过 Handler 执行在主线程的,外面代码可能执行在其他线程
+                                    // 所以我必须使用 final ,保证在 Runnable 执行前使用到的变量,在执行时不会被修改
+                                    mProgressInfo.setEachBytes(finalBytesRead != -1 ? finalTempSize : -1);
+                                    mProgressInfo.setCurrentbytes(finalTotalBytesRead);
+                                    mProgressInfo.setIntervalTime(finalIntervalTime);
+                                    mProgressInfo.setFinish(finalBytesRead == -1 && finalTotalBytesRead == mProgressInfo.getContentLength());
+                                    listener.onProgress(mProgressInfo);
                                 }
                             });
                         }
-                        lastRefreshTime = System.currentTimeMillis();
-                        if(totalBytesRead == mProgressInfo.getContentLength()){
-                            ProgressManager.getInstance().removeResponseListener(mProgressInfo.getKey());
-                        }
+                        lastRefreshTime = curTime;
+                        tempSize = 0;
                     }
                 }
                 return bytesRead;

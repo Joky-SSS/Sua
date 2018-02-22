@@ -18,24 +18,21 @@ import okio.Source;
 
 import static com.jokysss.downloader.progress.ProgressManager.REFRESH_TIME;
 
-
 /**
  * 继承于{@link ResponseBody},通过此类获取 Okhttp 下载的二进制数据
- * Created by jess on 02/06/2017 18:25
- * Contact with jess.yan.effort@gmail.com
  */
 
 public class ProgressResponseBody extends ResponseBody {
 
     protected Handler mHandler;
     protected final ResponseBody mDelegate;
-    protected final ProgressListener[] mListeners;
+    protected final Set<ProgressListener> mListeners;
     protected final ProgressInfo mProgressInfo;
     private BufferedSource mBufferedSource;
 
     public ProgressResponseBody(Handler handler, ResponseBody responseBody, String key, Set<ProgressListener> listeners) {
         this.mDelegate = responseBody;
-        this.mListeners = listeners.toArray(new ProgressListener[listeners.size()]);
+        this.mListeners = listeners;
         this.mHandler = handler;
         this.mProgressInfo = new ProgressInfo(key);
     }
@@ -71,8 +68,8 @@ public class ProgressResponseBody extends ResponseBody {
                     bytesRead = super.read(sink, byteCount);
                 } catch (IOException e) {
                     e.printStackTrace();
-                    for (int i = 0; i < mListeners.length; i++) {
-                        mListeners[i].onError(mProgressInfo.getKey(), e);
+                    for (ProgressListener listener : mListeners) {
+                        listener.onError(mProgressInfo.getKey(), e);
                     }
                     throw e;
                 }
@@ -89,17 +86,13 @@ public class ProgressResponseBody extends ResponseBody {
                         final long finalTempSize = tempSize;
                         final long finalTotalBytesRead = totalBytesRead;
                         final long finalIntervalTime = curTime - lastRefreshTime;
-                        for (int i = 0; i < mListeners.length; i++) {
-                            final ProgressListener listener = mListeners[i];
+                        for (final ProgressListener listener : mListeners) {
                             mHandler.post(new Runnable() {
                                 @Override
                                 public void run() {
-                                    // Runnable 里的代码是通过 Handler 执行在主线程的,外面代码可能执行在其他线程
-                                    // 所以我必须使用 final ,保证在 Runnable 执行前使用到的变量,在执行时不会被修改
                                     mProgressInfo.setEachBytes(finalBytesRead != -1 ? finalTempSize : -1);
                                     mProgressInfo.setCurrentbytes(finalTotalBytesRead);
                                     mProgressInfo.setIntervalTime(finalIntervalTime);
-                                    mProgressInfo.setFinish(finalBytesRead == -1 && finalTotalBytesRead == mProgressInfo.getContentLength());
                                     listener.onProgress(mProgressInfo);
                                 }
                             });

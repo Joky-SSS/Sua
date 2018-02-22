@@ -3,11 +3,6 @@ package com.jokysss.downloader.progress.body;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-/**
- * Created by jess on 07/06/2017 12:09
- * Contact with jess.yan.effort@gmail.com
- */
-
 public class ProgressInfo implements Parcelable{
     private long currentBytes; //当前已上传或下载的总长度
     private long contentLength; //数据总长度
@@ -20,23 +15,23 @@ public class ProgressInfo implements Parcelable{
         this.key = key;
     }
 
-    void setCurrentbytes(long currentbytes) {
+    public void setCurrentbytes(long currentbytes) {
         this.currentBytes = currentbytes;
     }
 
-    void setContentLength(long contentLength) {
+    public void setContentLength(long contentLength) {
         this.contentLength = contentLength;
     }
 
-    void setIntervalTime(long intervalTime) {
+    public void setIntervalTime(long intervalTime) {
         this.intervalTime = intervalTime;
     }
 
-    void setEachBytes(long eachBytes) {
+    public void setEachBytes(long eachBytes) {
         this.eachBytes = eachBytes;
     }
 
-    void setFinish(boolean finish) {
+    public void setFinish(boolean finish) {
         this.finish = finish;
     }
 

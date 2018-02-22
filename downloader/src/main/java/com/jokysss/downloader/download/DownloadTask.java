@@ -1,16 +1,23 @@
 package com.jokysss.downloader.download;
 
+import android.os.Handler;
+import android.os.Looper;
+
 
 import com.jokysss.downloader.APIHelper;
 import com.jokysss.downloader.FileHelper;
+import com.jokysss.downloader.Sua;
+import com.jokysss.downloader.ThreadService;
 import com.jokysss.downloader.progress.ProgressListener;
 import com.jokysss.downloader.progress.ProgressManager;
+import com.jokysss.downloader.progress.body.ProgressInfo;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import okhttp3.ResponseBody;
+import rx.Scheduler;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
@@ -26,21 +33,40 @@ public class DownloadTask {
     private Map<String,String> queryMap = new HashMap<>();
     private Subscription sub;
     private String key = "";
-
-    public DownloadTask(String url){
+    private static Scheduler scheduler = Schedulers.from(ThreadService.getDownloadService());
+    public DownloadTask(String key,String url){
+        this.key = key;
         this.url = url;
     }
     public Subscription start(){
-        sub = APIHelper.getApi().download(url,queryMap,key).subscribeOn(Schedulers.io())
+        if(!Sua.checkDownTaskSingle(key,this)){
+            return null;
+        }
+        sub = APIHelper.getApi().download(url,queryMap,key).subscribeOn(scheduler)
                 .subscribe(new Subscriber<ResponseBody>() {
                     @Override
-                    public void onCompleted() {}
+                    public void onCompleted() {
+                        Set<ProgressListener> listenerSet = ProgressManager.getInstance().removeResponseListener(key);
+                        if (listenerSet == null) return;
+                        final ProgressInfo info = new ProgressInfo(key);
+                        info.setFinish(true);
+                        Handler h = new Handler(Looper.getMainLooper());
+                        for (final ProgressListener listener : listenerSet) {
+                            h.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    listener.onProgress(info);
+                                }
+                            });
+                        }
+                        Sua.removeDownTask(key);
+                    }
                     @Override
                     public void onError(Throwable e) {
                     }
                     @Override
                     public void onNext(ResponseBody responseBody) {
-                        FileHelper.writeResponseBodyToDisk(responseBody, path+ File.separator+fileName);
+                        FileHelper.writeResponseBodyToDisk(responseBody, path + fileName);
                     }
                 });
         return sub;
@@ -50,9 +76,10 @@ public class DownloadTask {
             sub.unsubscribe();
         }
     }
-    public DownloadTask addListener(String key,ProgressListener listener){
-        ProgressManager.getInstance().addResponseListener(key,listener);
-        this.key = key;
+    public DownloadTask addListener(ProgressListener listener){
+        if(listener != null){
+            ProgressManager.getInstance().addResponseListener(key,listener);
+        }
         return this;
     }
     public String getUrl() {

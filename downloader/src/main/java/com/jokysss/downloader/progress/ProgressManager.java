@@ -8,7 +8,6 @@ import com.jokysss.downloader.progress.body.ProgressResponseBody;
 
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -24,8 +23,6 @@ import okhttp3.Response;
  * 实现原理类似 EventBus,你可在 App 中的任何地方,将多个监听器,以 Url 地址作为标识符,注册到本管理器
  * 当此 Url 地址存在下载或者上传的动作时,管理器会主动调用所有使用此 Url 地址注册过的监听器,达到多个模块的同步更新
  * 因为是通过 Url 作为唯一标识符,所以如果出现请求被重定向其他页面进行上传或者下载,那么就会出现获取不到进度的情况
- * Created by jess on 02/06/2017 18:37
- * Contact with jess.yan.effort@gmail.com
  */
 
 public final class ProgressManager {
@@ -38,7 +35,7 @@ public final class ProgressManager {
     private static volatile ProgressManager mProgressManager;
 
     public static final boolean DEPENDENCY_OKHTTP;
-    public static int REFRESH_TIME = 200; //回调刷新时间(单位ms),避免高频率调用
+    public static int REFRESH_TIME = 500; //回调刷新时间(单位ms),避免高频率调用
 
     static {
         boolean hasDependency;
@@ -80,46 +77,47 @@ public final class ProgressManager {
     /**
      * 将需要被监听上传进度的 Url 注册到管理器,此操作请在页面初始化时进行,切勿多次注册同一个(内容相同)监听器
      *
-     * @param url
+     * @param key
      * @param listener 当此 Url 地址存在上传的动作时,此监听器将被调用
      */
-    public void addRequestLisenter(String url, ProgressListener listener) {
+    public void addRequestLisenter(String key, ProgressListener listener) {
         Set<ProgressListener> progressListeners;
         synchronized (ProgressManager.class) {
-            progressListeners = mRequestListeners.get(url);
+            progressListeners = mRequestListeners.get(key);
             if (progressListeners == null) {
                 progressListeners = new HashSet<>();
-                mRequestListeners.put(url, progressListeners);
+                mRequestListeners.put(key, progressListeners);
             }
         }
         progressListeners.add(listener);
     }
-    public void removeRequestLisenter(String url) {
+
+    public Set<ProgressListener> removeRequestLisenter(String key) {
         synchronized (ProgressManager.class) {
-            mRequestListeners.remove(url);
+            return mRequestListeners.remove(key);
         }
     }
 
     /**
      * 将需要被监听下载进度的 Url 注册到管理器,此操作请在页面初始化时进行,切勿多次注册同一个(内容相同)监听器
      *
-     * @param url
+     * @param key
      * @param listener 当此 Url 地址存在下载的动作时,此监听器将被调用
      */
-    public void addResponseListener(String url, ProgressListener listener) {
+    public void addResponseListener(String key, ProgressListener listener) {
         Set<ProgressListener> progressListeners;
         synchronized (ProgressManager.class) {
-            progressListeners = mResponseListeners.get(url);
+            progressListeners = mResponseListeners.get(key);
             if (progressListeners == null) {
                 progressListeners = new HashSet<>();
-                mResponseListeners.put(url, progressListeners);
+                mResponseListeners.put(key, progressListeners);
             }
         }
         progressListeners.add(listener);
     }
-    public void removeResponseListener(String url) {
+    public Set<ProgressListener> removeResponseListener(String key) {
         synchronized (ProgressManager.class) {
-            mResponseListeners.remove(url);
+            return mResponseListeners.remove(key);
         }
     }
     /**
@@ -144,13 +142,16 @@ public final class ProgressManager {
         if (request == null || request.body() == null)
             return request;
         String key = request.header(LISTENKEY);
-        if (mRequestListeners.containsKey(key)) {
-            Set<ProgressListener> listeners = mRequestListeners.get(key);
-            return request.newBuilder()
-                    .method(request.method(), new ProgressRequestBody(mHandler, request.body(), key, listeners))
-                    .build();
+        Set<ProgressListener> listeners;
+        synchronized (ProgressManager.class) {
+            listeners = mRequestListeners.get(key);
+            if(listeners == null){
+                listeners = new HashSet<>();
+            }
         }
-        return request;
+        return request.newBuilder()
+                .method(request.method(), new ProgressRequestBody(mHandler, request.body(), key, listeners))
+                .build();
     }
 
     /**
@@ -165,21 +166,16 @@ public final class ProgressManager {
             return response;
 
         String key = response.request().header(LISTENKEY);
-        if (mResponseListeners.containsKey(key)) {
-            Set<ProgressListener> listeners = mResponseListeners.get(key);
-            return response.newBuilder()
-                    .body(new ProgressResponseBody(mHandler, response.body(), key, listeners))
-                    .build();
-        }
-        return response;
-    }
-    private void forEachListenersOnError(Map<String, List<ProgressListener>> map, String url, Exception e) {
-        if (map.containsKey(url)) {
-            List<ProgressListener> progressListeners = map.get(url);
-            ProgressListener[] array = progressListeners.toArray(new ProgressListener[progressListeners.size()]);
-            for (int i = 0; i < array.length; i++) {
-                array[i].onError(url, e);
+        Set<ProgressListener> listeners;
+        synchronized (ProgressManager.class) {
+            listeners = mResponseListeners.get(key);
+            if(listeners == null){
+                listeners = new HashSet<>();
+                mResponseListeners.put(key,listeners);
             }
         }
+        return response.newBuilder()
+                .body(new ProgressResponseBody(mHandler, response.body(), key, listeners))
+                .build();
     }
 }

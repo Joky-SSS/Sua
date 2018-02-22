@@ -2,9 +2,12 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/Sua.iml" filepath="$PROJECT_DIR$/Sua.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/download.iml" filepath="$PROJECT_DIR$/download.iml" />
+      <module fileurl="file://E:\AndroidStudioProjects\Sua\app\app.iml" filepath="E:\AndroidStudioProjects\Sua\app\app.iml" />
+      <module fileurl="file://E:\AndroidStudioProjects\Sua\download.iml" filepath="E:\AndroidStudioProjects\Sua\download.iml" />
       <module fileurl="file://$PROJECT_DIR$/downloader/downloader.iml" filepath="$PROJECT_DIR$/downloader/downloader.iml" />
+      <module fileurl="file://E:\AndroidStudioProjects\Sua\downloader\downloader.iml" filepath="E:\AndroidStudioProjects\Sua\downloader\downloader.iml" />
     </modules>
   </component>
 </project>

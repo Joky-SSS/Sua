@@ -1,6 +1,5 @@
 package com.jokysss.downloader;
 
-
 import com.jokysss.downloader.progress.ProgressManager;
 
 import java.util.concurrent.TimeUnit;

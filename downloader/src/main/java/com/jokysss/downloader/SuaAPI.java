@@ -1,6 +1,5 @@
 package com.jokysss.downloader;
 
-
 import com.jokysss.downloader.progress.ProgressManager;
 
 import java.util.Map;
@@ -23,8 +22,8 @@ import rx.Observable;
 public interface SuaAPI {
     @GET
     @Streaming
-    Observable<ResponseBody> download(@Url String url, @QueryMap Map<String,String> querys, @Header(ProgressManager.LISTENKEY)String key);
+    Observable<ResponseBody> download(@Url String url, @QueryMap Map<String, String> querys, @Header(ProgressManager.LISTENKEY) String key);
 
     @POST
-    Observable<ResponseBody> upload(@Url String url, @Body RequestBody Body,@Header(ProgressManager.LISTENKEY)String key);
+    Observable<ResponseBody> upload(@Url String url, @Body RequestBody Body, @Header(ProgressManager.LISTENKEY) String key);
 }

@@ -3,7 +3,6 @@ package com.jokysss.downloader.download;
 import android.os.Handler;
 import android.os.Looper;
 
-
 import com.jokysss.downloader.APIHelper;
 import com.jokysss.downloader.FileHelper;
 import com.jokysss.downloader.Sua;
@@ -16,11 +15,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import io.reactivex.Scheduler;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableObserver;
+import io.reactivex.schedulers.Schedulers;
 import okhttp3.ResponseBody;
-import rx.Scheduler;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.schedulers.Schedulers;
 
 /**
  * Created by Joky on 2017/6/13 0013.
@@ -31,21 +30,21 @@ public class DownloadTask {
     private String fileName;
     private String path;
     private Map<String,String> queryMap = new HashMap<>();
-    private Subscription sub;
+    private Disposable sub;
     private String key = "";
     private static Scheduler scheduler = Schedulers.from(ThreadService.getDownloadService());
-    public DownloadTask(String key,String url){
+    public DownloadTask(String key, String url){
         this.key = key;
         this.url = url;
     }
-    public Subscription start(){
+
+    public Disposable start() {
         if(!Sua.checkDownTaskSingle(key,this)){
             return null;
         }
-        sub = APIHelper.getApi().download(url,queryMap,key).subscribeOn(scheduler)
-                .subscribe(new Subscriber<ResponseBody>() {
+        sub = APIHelper.getApi().download(url,queryMap,key).subscribeOn(scheduler).subscribeWith(new DisposableObserver<ResponseBody>() {
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         Set<ProgressListener> listenerSet = ProgressManager.getInstance().removeResponseListener(key);
                         if (listenerSet == null) return;
                         final ProgressInfo info = new ProgressInfo(key);
@@ -72,8 +71,8 @@ public class DownloadTask {
         return sub;
     }
     public void cancel(){
-        if(sub != null && !sub.isUnsubscribed()){
-            sub.unsubscribe();
+        if (sub != null && !sub.isDisposed()) {
+            sub.dispose();
         }
     }
     public DownloadTask addListener(ProgressListener listener){
@@ -103,7 +102,7 @@ public class DownloadTask {
         this.path = path;
         return this;
     }
-    public DownloadTask addQuery(String key,String value){
+    public DownloadTask addQuery(String key, String value){
         queryMap.put(key,value);
         return this;
     }

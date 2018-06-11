@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "26.0.2"
+    buildToolsVersion '27.0.3'
 
     defaultConfig {
         minSdkVersion 18
@@ -20,16 +20,24 @@ android {
         }
     }
 }
-
+ext {
+    rxandroidVer = "2.0.2"
+    rxjavaVer = "2.1.14-RC1"
+    retrofitVer = "2.4.0"
+    adapterrxjava2Ver = "2.4.0"
+    converterscalarsVer = "2.2.0"
+    interceptorVer = "3.10.0"
+}
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    androidTestImplementation('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
-    testCompile 'junit:junit:4.12'
-    compile 'io.reactivex:rxandroid:1.2.0'
-    compile 'io.reactivex:rxjava:1.1.5'
-    compile 'com.squareup.retrofit2:retrofit:2.2.0'
-    compile 'com.squareup.retrofit2:adapter-rxjava:2.2.0'
-    compile 'com.squareup.retrofit2:converter-scalars:2.2.0'
+    testImplementation 'junit:junit:4.12'
+    api "io.reactivex.rxjava2:rxandroid:${rxandroidVer}"
+    api "io.reactivex.rxjava2:rxjava:${rxjavaVer}"
+    api "com.squareup.retrofit2:retrofit:${retrofitVer}"
+    api "com.squareup.retrofit2:adapter-rxjava2:${adapterrxjava2Ver}"
+    api "com.squareup.retrofit2:converter-scalars:${converterscalarsVer}"
+    api "com.squareup.okhttp3:logging-interceptor:${interceptorVer}"
 }

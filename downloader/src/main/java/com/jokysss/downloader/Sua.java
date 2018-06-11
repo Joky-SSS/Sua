@@ -1,5 +1,6 @@
 package com.jokysss.downloader;
 
+
 import com.jokysss.downloader.download.DownloadTask;
 import com.jokysss.downloader.progress.ProgressManager;
 import com.jokysss.downloader.upload.UploadTask;
@@ -15,12 +16,12 @@ public class Sua {
 
     private static Map<String,DownloadTask> downloadTaskMap = new ConcurrentHashMap<>();
 
-    public static DownloadTask download(String key,String url){
+    public static DownloadTask download(String key, String url){
         DownloadTask task = new DownloadTask(key,url);
         return task;
     }
 
-    public static UploadTask upload(String key,String url){
+    public static UploadTask upload(String key, String url){
         UploadTask task = new UploadTask(key,url);
         return task;
     }
@@ -34,10 +35,10 @@ public class Sua {
     }
 
     public static boolean isDownloading(String key){
-        return downloadTaskMap.containsKey(key);
+        return key == null ? false : downloadTaskMap.containsKey(key);
     }
 
-    public synchronized static boolean checkDownTaskSingle(String key,DownloadTask task){
+    public synchronized static boolean checkDownTaskSingle(String key, DownloadTask task){
         if(downloadTaskMap.containsKey(key)){
             return false;
         }else{

@@ -3,6 +3,7 @@ package com.jokysss.downloader.progress.body;
 import android.os.Handler;
 import android.os.SystemClock;
 
+
 import com.jokysss.downloader.progress.ProgressListener;
 
 import java.io.IOException;
@@ -17,6 +18,7 @@ import okio.Okio;
 import okio.Source;
 
 import static com.jokysss.downloader.progress.ProgressManager.REFRESH_TIME;
+
 
 /**
  * 继承于{@link ResponseBody},通过此类获取 Okhttp 下载的二进制数据

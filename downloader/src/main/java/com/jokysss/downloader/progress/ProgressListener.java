@@ -1,5 +1,6 @@
 package com.jokysss.downloader.progress;
 
+
 import com.jokysss.downloader.progress.body.ProgressInfo;
 
 public interface ProgressListener {

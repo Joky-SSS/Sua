@@ -15,7 +15,7 @@ public class FileHelper {
 		InputStream inputStream = null;
 		OutputStream outputStream = null;
 		try {
-			temp = new File(path+System.currentTimeMillis());
+			temp = new File(path+ System.currentTimeMillis());
 			File parent = temp.getParentFile();
 			if(!parent.exists()){
 				parent.mkdirs();

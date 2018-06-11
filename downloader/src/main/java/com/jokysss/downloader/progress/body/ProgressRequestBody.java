@@ -32,7 +32,7 @@ public class ProgressRequestBody extends RequestBody {
     private BufferedSink mBufferedSink;
 
 
-    public ProgressRequestBody(Handler handler, RequestBody delegate,String key, Set<ProgressListener> listeners) {
+    public ProgressRequestBody(Handler handler, RequestBody delegate, String key, Set<ProgressListener> listeners) {
         this.mDelegate = delegate;
         this.mListeners = listeners;
         this.mHandler = handler;

@@ -3,7 +3,7 @@ package com.jokysss.downloader.progress.body;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-public class ProgressInfo implements Parcelable{
+public class ProgressInfo implements Parcelable {
     private long currentBytes; //当前已上传或下载的总长度
     private long contentLength; //数据总长度
     private long intervalTime; //本次调用距离上一次被调用所间隔的时间(毫秒)

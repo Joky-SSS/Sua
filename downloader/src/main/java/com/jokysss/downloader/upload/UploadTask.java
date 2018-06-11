@@ -16,14 +16,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.reactivex.Scheduler;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableObserver;
+import io.reactivex.schedulers.Schedulers;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
-import rx.Scheduler;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.schedulers.Schedulers;
 
 /**
  * Created by Joky on 2017/6/15 0015.
@@ -33,16 +33,16 @@ public class UploadTask {
     private String url;
     private Map<String,String> fieldMap = new HashMap<>();
     private List<File> fileList = new LinkedList<>();
-    private Subscription sub;
+    private Disposable sub;
     private String key = "";
     private static Scheduler scheduler = Schedulers.from(ThreadService.getUploadService());
 
-    public UploadTask(String key,String url){
+    public UploadTask(String key, String url){
         this.url = url;
         this.key = key;
     }
 
-    public Subscription start(){
+    public Disposable start() {
         MultipartBody.Builder builder =  new MultipartBody.Builder().setType(MultipartBody.FORM);
         for(Map.Entry<String,String> e : fieldMap.entrySet()){
             builder.addFormDataPart(e.getKey(),e.getValue());
@@ -51,10 +51,9 @@ public class UploadTask {
             builder.addFormDataPart("file", f.getName(), RequestBody.create(MediaType.parse("multipart/form-data"), f));
         }
         RequestBody requestBody = builder.build();
-        sub = APIHelper.getApi().upload(url,requestBody,key).subscribeOn(scheduler)
-                .subscribe(new Subscriber<ResponseBody>() {
+        sub = APIHelper.getApi().upload(url,requestBody,key).subscribeOn(scheduler).subscribeWith(new DisposableObserver<ResponseBody>() {
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         Set<ProgressListener> listenerSet = ProgressManager.getInstance().removeRequestLisenter(key);
                         if(listenerSet == null) return;
                         final ProgressInfo info = new ProgressInfo(key);
@@ -88,8 +87,8 @@ public class UploadTask {
         return sub;
     }
     public void cancel(){
-        if(sub != null && !sub.isUnsubscribed()){
-            sub.unsubscribe();
+        if (sub != null && !sub.isDisposed()) {
+            sub.dispose();
         }
     }
     public UploadTask addListener(ProgressListener listener){
@@ -102,7 +101,7 @@ public class UploadTask {
         this.url = url;
         return this;
     }
-    public UploadTask addField(String key,String value){
+    public UploadTask addField(String key, String value){
         fieldMap.put(key,value);
         return this;
     }
